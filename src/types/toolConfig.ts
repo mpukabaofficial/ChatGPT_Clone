@@ -19,7 +19,9 @@ export type OutputType =
   | 'table'
   | 'chart'
   | 'code'
-  | 'markdown';
+  | 'markdown'
+  | 'canvas'
+  | 'grid';
 
 export type ChartType = 'bar' | 'line' | 'pie' | 'doughnut' | 'scatter';
 
@@ -44,6 +46,8 @@ export interface ToolOutput {
   format?: string; // For formatting numbers, dates, etc.
   chartType?: ChartType;
   copyable?: boolean;
+  gridSize?: { rows: number; cols: number }; // For grid-based games
+  cellRenderer?: string; // JavaScript function to render cells
 }
 
 export interface ToolAction {
@@ -64,7 +68,7 @@ export interface ToolSection {
 
 export interface ToolConfig {
   id: string;
-  type: 'calculator' | 'converter' | 'generator' | 'analyzer' | 'visualizer' | 'custom';
+  type: 'calculator' | 'converter' | 'generator' | 'analyzer' | 'visualizer' | 'game' | 'custom';
   title: string;
   description?: string;
   icon?: string;
@@ -74,6 +78,13 @@ export interface ToolConfig {
     primaryColor?: string;
     accentColor?: string;
     layout?: 'single' | 'split' | 'grid';
+  };
+  gameConfig?: {
+    canvasWidth?: number;
+    canvasHeight?: number;
+    cellSize?: number;
+    enableKeyboard?: boolean;
+    enableMouse?: boolean;
   };
 }
 

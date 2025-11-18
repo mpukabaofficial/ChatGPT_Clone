@@ -3,6 +3,7 @@ import { bmiCalculator } from './analyzer';
 import { percentageCalculator, simpleCalculator } from './calculator';
 import { unitConverter } from './converter';
 import { passwordGenerator } from './generator';
+import { ticTacToe, memoryGame, numberGuessing } from './game';
 
 export const TOOL_TEMPLATES: Record<string, ToolConfig> = {
   simpleCalculator,
@@ -10,6 +11,9 @@ export const TOOL_TEMPLATES: Record<string, ToolConfig> = {
   percentageCalculator,
   bmiCalculator,
   passwordGenerator,
+  ticTacToe,
+  memoryGame,
+  numberGuessing,
 };
 
 export function getTemplateExamples(): string {
