@@ -1,20 +1,10 @@
 import { ArrowUp, Maximize2, Pin, PinOff, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { getAIResponse, type AIResponse, type CommandResponse } from "../api";
+import { getAIResponse, getToolConfig, type CommandResponse } from "../api";
 import { useChatStore, type Message } from "../chatStore";
 import MessageText from "./MessageText";
+import ToolRenderer from "./tools/ToolRenderer";
 import TopNav from "./MainContent/TopNav";
-
-interface ToolPlan {
-  toolType: string;
-  features: string[];
-  inputs: string[];
-  outputs: string[];
-  interactivity: string[];
-  complexity: string;
-  specialRequirements: string[];
-  userExperience: string[];
-}
 
 interface Props {
   isLoading: boolean;
@@ -29,13 +19,6 @@ interface Props {
     args: string,
     _fullInput: string
   ) => Promise<CommandResponse>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createToolPlan: (query: string, context: Message[]) => Promise<any>;
-  createEnhancedTool: (
-    instruction: string,
-    plan: ToolPlan,
-    context: Message[]
-  ) => Promise<AIResponse>;
   setMaximizedEmbed: React.Dispatch<
     React.SetStateAction<{
       messageId: string;
@@ -51,8 +34,6 @@ const MainContent = ({
   onSetLoading,
   detectCommand,
   processCommand,
-  createToolPlan,
-  createEnhancedTool,
   setMaximizedEmbed,
   context,
 }: Props) => {
@@ -232,44 +213,40 @@ const MainContent = ({
             );
           }
 
-          // If AI decided to create a tool, enhance it with planning
+          // If AI decided to create a tool, use new config-based system
           if (aiResponse.type === "tool") {
             console.log(
-              "🔧 AI requested tool creation - applying enhanced planning"
+              "🔧 AI requested tool creation - generating tool config (NEW SYSTEM)"
             );
 
             try {
-              // Create plan for AI-detected tool request
-              const toolPlan = await createToolPlan(currentInput, context);
-
-              // Enhance the tool with planning
-              const enhancedTool = await createEnhancedTool(
-                currentInput,
-                toolPlan,
-                context
-              );
+              // Generate tool configuration (much more efficient than HTML)
+              const toolConfig = await getToolConfig(currentInput, context);
 
               const assistantMessage: Message = {
                 id: crypto.randomUUID(),
                 role: "assistant",
-                type: "tool",
-                content: enhancedTool.content,
-                suggestions: enhancedTool.suggestions || aiResponse.suggestions,
+                type: "tool_config",
+                content: toolConfig.title,
+                toolConfig: toolConfig,
+                description: toolConfig.description,
+                suggestions: aiResponse.suggestions,
               };
 
               addMessage(assistantMessage);
+              console.log("✅ Tool config generated successfully:", toolConfig.title);
             } catch (error) {
               console.error(
-                "❌ Enhanced tool creation failed, using fallback:",
+                "❌ Tool config generation failed:",
                 error
               );
-              // Fallback to original AI response if planning fails
+              // Fallback to text response if tool generation fails
               const assistantMessage: Message = {
                 id: crypto.randomUUID(),
                 role: "assistant",
-                type: aiResponse.type,
-                content: aiResponse.content,
-                suggestions: aiResponse.suggestions,
+                type: "text",
+                content: "I apologize, but I encountered an error while creating the tool. Let me help you with a text explanation instead.",
+                suggestions: ["Try a simpler tool", "Ask a different question", "Report this issue"],
               };
 
               addMessage(assistantMessage);
@@ -603,6 +580,11 @@ const MainContent = ({
                           />
                         </div>
                       </div>
+                    </section>
+                  )}
+                  {message.type === "tool_config" && message.toolConfig && (
+                    <section className="mt-6">
+                      <ToolRenderer config={message.toolConfig} />
                     </section>
                   )}
                   {message.type === "embed" && (
