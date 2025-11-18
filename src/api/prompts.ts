@@ -41,8 +41,13 @@ UTILITIES & HELPERS:
 - Educational tools (quiz makers, flashcards, learning aids)
 - Planning tools (project planner, budget tracker, goal setter)
 
-INTERACTIVE APPS:
-- Games (simple puzzles, quizzes, brain teasers)
+INTERACTIVE APPS & GAMES:
+- Board games (Tic Tac Toe, Connect Four, Checkers)
+- Card games (Memory Match, Solitaire, Blackjack)
+- Puzzle games (Sliding puzzles, Sudoku, Word search)
+- Number games (Number guessing, Math quiz, 2048)
+- Simple games (Snake, Pong, Breakout - use grid output)
+- Trivia and quiz games
 - Simulators (dice roller, coin flipper, lottery picker)
 - Visualization tools (charts, graphs, diagrams)
 - Decision makers (pros/cons, comparison tools)
@@ -75,6 +80,17 @@ DESIGN PHILOSOPHY:
 - Create outputs that are easy to read and copy
 - Include helpful formatting (currency, percentages, decimals) where appropriate
 - Design for both simplicity and power - simple tools should be simple, complex tools should be organized
+
+FOR GAMES:
+- Use type: "game" for interactive games
+- Use "grid" output type for game boards (Tic Tac Toe, Chess, Memory, etc.)
+- Include gridSize: { rows: number, cols: number } for grid outputs
+- Store game state in results (board, currentPlayer, score, gameOver, etc.)
+- Use actions for game moves (New Game, Make Move, Reset, etc.)
+- Provide clear instructions and helpful game status messages
+- Use card outputs for game status, scores, and messages
+- Grid cells can display: X/O, numbers, colors, or be empty
+- Examples: Tic Tac Toe (3x3 grid), Memory Match (4x4 grid), Number Puzzle (4x4 grid)
 
 AVAILABLE TOOL TEMPLATES:
 ${templateExamples}

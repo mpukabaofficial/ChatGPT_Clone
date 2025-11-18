@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Calculator, Sparkles, Zap } from 'lucide-react';
+import { Calculator, Sparkles, Zap, Gamepad2 } from 'lucide-react';
 import type { ToolConfig, ToolState, ToolResult, ToolAction } from '../../types/toolConfig';
 import ToolInput from './ToolInput';
 import ToolOutput from './ToolOutput';
@@ -72,6 +72,8 @@ const ToolRenderer = ({ config }: Props) => {
         return <Calculator className="w-5 h-5" />;
       case 'generator':
         return <Sparkles className="w-5 h-5" />;
+      case 'game':
+        return <Gamepad2 className="w-5 h-5" />;
       default:
         return <Zap className="w-5 h-5" />;
     }

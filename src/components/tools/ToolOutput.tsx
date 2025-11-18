@@ -2,6 +2,7 @@ import type { ToolOutput as ToolOutputType } from '../../types/toolConfig';
 import { CardCodeOutput } from './outputs/CardCodeOutput';
 import { ListTableOutput } from './outputs/ListTableOutput';
 import { TextNumberOutput } from './outputs/TextNumberOutput';
+import { GridOutput } from './outputs/GridOutput';
 
 interface Props {
   output: ToolOutputType;
@@ -20,6 +21,10 @@ const ToolOutput = ({ output, value }: Props) => {
 
   if (output.type === 'list' || output.type === 'table') {
     return <ListTableOutput output={output} value={value} />;
+  }
+
+  if (output.type === 'grid') {
+    return <GridOutput output={output} value={value} />;
   }
 
   return <TextNumberOutput output={output} value={value as string | number | boolean} />;
