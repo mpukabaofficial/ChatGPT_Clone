@@ -1,5 +1,7 @@
 import OpenAI from "openai";
 import type { Message } from "./chatStore";
+import type { ToolConfig } from "./types/toolConfig";
+import { getTemplateExamples } from "./utils/toolTemplates";
 
 const client = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -73,8 +75,9 @@ Always include "reasoning" to explain your type choice for debugging.
 After every response, include 3-5 contextually relevant "suggestions" for follow-up questions or actions.`;
 
 export interface AIResponse {
-  type: "text" | "tool" | "embed";
+  type: "text" | "tool" | "embed" | "tool_config";
   content: string;
+  toolConfig?: ToolConfig;
   suggestions?: string[];
   reasoning?: string;
 }
@@ -155,6 +158,151 @@ export async function getAIResponse(
     return {
       type: "text",
       content: "Error: Could not parse AI response.",
+    };
+  }
+}
+
+// New function to generate tool configurations (much more efficient than generating full HTML)
+export async function getToolConfig(
+  prompt: string,
+  context: Message[]
+): Promise<ToolConfig> {
+  try {
+    const templateExamples = getTemplateExamples();
+
+    const toolSystemPrompt = `You are a tool configuration generator. Generate JSON configurations for interactive tools instead of full HTML.
+
+AVAILABLE TOOL TEMPLATES:
+${templateExamples}
+
+TOOL CONFIGURATION FORMAT:
+{
+  "id": "unique-id",
+  "type": "calculator" | "converter" | "generator" | "analyzer" | "visualizer" | "custom",
+  "title": "Tool Title",
+  "description": "Brief description",
+  "sections": [
+    {
+      "id": "section-id",
+      "title": "Section Title (optional)",
+      "inputs": [
+        {
+          "id": "input-id",
+          "type": "number" | "text" | "select" | "textarea" | "slider" | "checkbox" | "date" | "color",
+          "label": "Input Label",
+          "defaultValue": "default",
+          "options": [{"label": "Option", "value": "value"}],  // for select
+          "min": 0, "max": 100, "step": 1  // for number/slider
+        }
+      ],
+      "actions": [
+        {
+          "id": "action-id",
+          "label": "Button Text",
+          "type": "primary" | "secondary" | "danger",
+          "logic": "JavaScript code that uses 'inputs' and sets 'results'"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "output-id",
+          "type": "text" | "number" | "card" | "list" | "table" | "code",
+          "label": "Output Label",
+          "format": "currency" | "percent" | "fixed:2",  // optional
+          "copyable": true
+        }
+      ]
+    }
+  ]
+}
+
+LOGIC WRITING GUIDE:
+- Access inputs via inputs.inputId
+- Set results via results.outputId = value
+- Available helpers: Math, Date, JSON, round(num, decimals), formatCurrency(num), formatPercent(num)
+- Keep logic simple and focused
+- Handle edge cases (division by zero, invalid input, etc.)
+
+EXAMPLE LOGIC:
+\`\`\`javascript
+const principal = Number(inputs.principal);
+const rate = Number(inputs.rate) / 100;
+const years = Number(inputs.years);
+
+if (principal <= 0 || rate < 0 || years <= 0) {
+  results.total = 'Invalid input';
+  return;
+}
+
+const total = principal * Math.pow(1 + rate, years);
+results.total = round(total, 2);
+results.interest = round(total - principal, 2);
+results.summary = \`With \${formatCurrency(principal)} at \${formatPercent(rate)} for \${years} years, you'll have \${formatCurrency(total)}\`;
+\`\`\`
+
+Generate a complete, working tool configuration based on the user's request.`;
+
+    const contextMessages = context.map((msg) => ({
+      role: msg.role as "user" | "assistant",
+      content: msg.content,
+    }));
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: toolSystemPrompt,
+        },
+        ...contextMessages,
+        { role: "user", content: prompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+      max_tokens: 1500,  // Much less than 2000 for full HTML
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("No content in tool config response");
+    }
+
+    const toolConfig = JSON.parse(content) as ToolConfig;
+
+    // Validate the tool config has required fields
+    if (!toolConfig.id || !toolConfig.type || !toolConfig.title || !toolConfig.sections) {
+      throw new Error("Invalid tool configuration structure");
+    }
+
+    return toolConfig;
+  } catch (error) {
+    console.error("Tool Config Generation Error:", error);
+    // Return a fallback simple calculator
+    return {
+      id: 'fallback-calculator',
+      type: 'calculator',
+      title: 'Simple Calculator',
+      description: 'Error occurred, showing fallback calculator',
+      sections: [
+        {
+          id: 'main',
+          inputs: [
+            { id: 'num1', type: 'number', label: 'Number 1', defaultValue: 0 },
+            { id: 'num2', type: 'number', label: 'Number 2', defaultValue: 0 },
+          ],
+          actions: [
+            {
+              id: 'add',
+              label: 'Add',
+              type: 'primary',
+              logic: 'results.result = Number(inputs.num1) + Number(inputs.num2);',
+            },
+          ],
+          outputs: [
+            { id: 'result', type: 'number', label: 'Result', copyable: true },
+          ],
+        },
+      ],
     };
   }
 }

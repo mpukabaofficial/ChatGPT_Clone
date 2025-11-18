@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import type { ToolConfig } from './types/toolConfig';
+
 export type Message = {
   id: string;
   role: "user" | "assistant";
-  type: "text" | "tool" | "embed";
+  type: "text" | "tool" | "embed" | "tool_config";
   content: string;
+  toolConfig?: ToolConfig; // For new React-based tools
   description?: string; // Optional description for embeds and tools
   suggestions?: string[];
 };
@@ -13,7 +16,7 @@ export type Message = {
 export type PinnedItem = {
   id: string;
   messageId: string; // link to original message
-  type: "text" | "tool" | "embed";
+  type: "text" | "tool" | "embed" | "tool_config";
   content: string;
   createdAt: number;
 };

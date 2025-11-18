@@ -717,8 +717,6 @@ ${plan.userExperience.map((ux: string) => `- ${ux}`).join("\n")}
           onSetLoading={setIsLoading}
           detectCommand={detectCommand}
           processCommand={processCommand}
-          createToolPlan={createToolPlan}
-          createEnhancedTool={createEnhancedTool}
           setMaximizedEmbed={setMaximizedEmbed}
           context={context}
         />
