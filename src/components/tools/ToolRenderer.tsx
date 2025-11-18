@@ -46,6 +46,14 @@ const ToolRenderer = ({ config }: Props) => {
         formatCurrency: (num: number) =>
           new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num),
         formatPercent: (num: number) => `${(num * 100).toFixed(2)}%`,
+        shuffle: (array: any[]): any[] => {
+          const shuffled = [...array];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          return shuffled;
+        },
       };
 
       // Execute the logic safely
