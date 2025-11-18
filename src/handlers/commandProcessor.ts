@@ -1,11 +1,10 @@
 import type { Message } from '../chatStore';
 import type { CommandResponse } from '../api';
-import { createToolPlan, createVisualizationPlan } from '../services/toolPlanning';
-import { createEnhancedTool, createEnhancedVisualization } from '../services/toolGeneration';
+import { getToolConfig } from '../api';
 import { processEmbedCommand, processNoteCommand } from './commandHandlers';
 
 /**
- * Process tool command with planning and generation
+ * Process tool command using the tool config framework
  */
 export async function processToolCommand(
   query: string,
@@ -14,18 +13,23 @@ export async function processToolCommand(
 ): Promise<CommandResponse> {
   console.log(`🔧 Processing /${toolType} command: "${query}"`);
 
-  // Use shared planning function
-  const toolPlan = await createToolPlan(query, context);
+  // Generate tool configuration using the framework
+  const toolConfig = await getToolConfig(query, context);
 
-  // Create the tool using enhanced planning
-  const instruction = `Create a ${toolType} tool for: ${query}`;
-  const aiResponse = await createEnhancedTool(instruction, toolPlan, context);
-
-  return aiResponse;
+  return {
+    type: 'tool_config',
+    content: toolConfig.title,
+    toolConfig,
+    suggestions: [
+      'Modify the tool',
+      'Create another tool',
+      'Export results',
+    ],
+  };
 }
 
 /**
- * Process visualization command with planning and generation
+ * Process visualization command using the tool config framework
  */
 export async function processVisualizationCommand(
   query: string,
@@ -34,14 +38,20 @@ export async function processVisualizationCommand(
 ): Promise<CommandResponse> {
   console.log(`📊 Processing /${vizType} visualization: "${query}"`);
 
-  // Create specialized visualization plan
-  const vizPlan = await createVisualizationPlan(query, vizType, context);
+  // Generate tool configuration for visualization
+  const enhancedQuery = `Create an interactive ${vizType} visualization for: ${query}`;
+  const toolConfig = await getToolConfig(enhancedQuery, context);
 
-  // Create the visualization using enhanced planning
-  const instruction = `Create a ${vizType} visualization for: ${query}`;
-  const aiResponse = await createEnhancedVisualization(instruction, vizPlan, context);
-
-  return aiResponse;
+  return {
+    type: 'tool_config',
+    content: toolConfig.title,
+    toolConfig,
+    suggestions: [
+      'Modify the visualization',
+      'Create another chart',
+      'Export data',
+    ],
+  };
 }
 
 /**

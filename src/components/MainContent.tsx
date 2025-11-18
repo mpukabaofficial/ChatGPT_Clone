@@ -370,17 +370,37 @@ const MainContent = ({
     try {
       const userPrompt = findUserPromptForMessage(messageId);
       const context = getRecentContext();
-      const aiResponse = await getAIResponse(userPrompt, context, targetType);
 
-      const morphedMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        type: aiResponse.type,
-        content: aiResponse.content,
-        suggestions: aiResponse.suggestions,
-      };
+      // If morphing to tool, use the new config framework
+      if (targetType === "tool") {
+        console.log("🔄 Morphing to tool - using new config framework");
+        const toolConfig = await getToolConfig(userPrompt, context);
 
-      addMessage(morphedMessage);
+        const morphedMessage: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          type: "tool_config",
+          content: toolConfig.title,
+          toolConfig: toolConfig,
+          description: toolConfig.description,
+          suggestions: ["Modify this tool", "Create another tool", "Ask a question"],
+        };
+
+        addMessage(morphedMessage);
+      } else {
+        // For text or embed, use regular AI response
+        const aiResponse = await getAIResponse(userPrompt, context, targetType);
+
+        const morphedMessage: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          type: aiResponse.type,
+          content: aiResponse.content,
+          suggestions: aiResponse.suggestions,
+        };
+
+        addMessage(morphedMessage);
+      }
     } catch (error) {
       console.error("Error morphing response:", error);
       const errorMessage: Message = {
@@ -550,28 +570,21 @@ const MainContent = ({
               {messages.map((message) => (
                 <div key={message.id} id={`message-${message.id}`}>
                   {message.type === "tool" && (
-                    <section className="mt-6 bg-slate-900 rounded-xl relative group">
-                      {/* Action Bar */}
-                      <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button
-                          onClick={() => handleMaximizeEmbed(message)}
-                          className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg shadow-md transition-colors"
-                          title="Maximize"
-                        >
-                          <Maximize2 className="w-4 h-4" />
-                        </button>
+                    <section className="mt-6">
+                      <div className="p-4 bg-slate-800/50 rounded-lg border border-amber-500/30 mb-4">
+                        <p className="text-sm text-amber-300">
+                          ⚠️ Legacy tool format detected. This tool was created with the old system.
+                          New tools use an improved framework with better performance and design.
+                        </p>
                       </div>
-
-                      <div className="p-4 bg-slate-800 rounded-xl">
-                        <div className="mb-3 text-sm text-gray-300">
-                          Tool Output
+                      <div className="bg-slate-900 rounded-xl p-4">
+                        <div className="mb-3 text-sm text-gray-400">
+                          Tool Output (Legacy)
                         </div>
                         <div
-                          className="relative w-full"
+                          className="relative w-full bg-slate-800 rounded-lg"
                           style={{ paddingBottom: "56.25%" }}
                         >
-                          {" "}
-                          {/* 16:9 aspect ratio */}
                           <iframe
                             srcDoc={message.content}
                             className="absolute inset-0 w-full h-full rounded-lg"
