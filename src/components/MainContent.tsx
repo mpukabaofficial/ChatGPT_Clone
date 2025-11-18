@@ -189,6 +189,8 @@ const MainContent = ({
             role: "assistant",
             type: commandResponse.type,
             content: commandResponse.content,
+            toolConfig: commandResponse.toolConfig,
+            description: commandResponse.description,
             suggestions: commandResponse.suggestions,
           };
 
