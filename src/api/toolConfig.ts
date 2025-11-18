@@ -1,8 +1,10 @@
 import type { Message } from "../chatStore";
 import type { ToolConfig } from "../types/toolConfig";
 import { getTemplateExamples } from "../templates";
-import { client } from "./client";
+import { ChatService } from "../services/chatService";
 import { TOOL_CONFIG_SYSTEM_PROMPT } from "./prompts";
+
+const chatService = new ChatService();
 
 export async function getToolConfig(
   prompt: string,
@@ -12,28 +14,25 @@ export async function getToolConfig(
     const templateExamples = getTemplateExamples();
     const toolSystemPrompt = TOOL_CONFIG_SYSTEM_PROMPT(templateExamples);
 
-    const contextMessages = context.map((msg) => ({
-      role: msg.role as "user" | "assistant",
-      content: msg.content,
-    }));
+    // Get recent context
+    const recentContext = chatService.getRecentContext(context, 3);
 
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: toolSystemPrompt },
-        ...contextMessages,
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 1500,
-    });
+    // Send message using ChatService with retry logic
+    const responseText = await chatService.sendMessage(
+      toolSystemPrompt,
+      recentContext,
+      prompt,
+      {
+        temperature: 0.7,
+        maxTokens: 1500,
+        jsonMode: true,
+      }
+    );
 
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error("No content in tool config response");
+    // Parse tool configuration
+    const toolConfig = JSON.parse(responseText) as ToolConfig;
 
-    const toolConfig = JSON.parse(content) as ToolConfig;
-
+    // Validate the tool config has required fields
     if (
       !toolConfig.id ||
       !toolConfig.type ||
@@ -46,6 +45,8 @@ export async function getToolConfig(
     return toolConfig;
   } catch (error) {
     console.error("Tool Config Generation Error:", error);
+
+    // Return fallback calculator
     return {
       id: "fallback-calculator",
       type: "calculator",

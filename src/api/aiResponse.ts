@@ -1,7 +1,9 @@
 import type { Message } from "../chatStore";
-import { client } from "./client";
+import { ChatService } from "../services/chatService";
 import { CHAT_SYSTEM_PROMPT } from "./prompts";
 import type { AIResponse } from "./types";
+
+const chatService = new ChatService();
 
 export async function getAIResponse(
   prompt: string,
@@ -9,11 +11,7 @@ export async function getAIResponse(
   forcedType?: "text" | "tool" | "embed"
 ): Promise<AIResponse> {
   try {
-    const contextMessages = context.map((msg) => ({
-      role: msg.role as "user" | "assistant",
-      content: msg.content,
-    }));
-
+    // Build system prompt with type forcing if needed
     let systemPrompt = CHAT_SYSTEM_PROMPT;
     if (forcedType) {
       const typeInstructions = {
@@ -25,31 +23,35 @@ export async function getAIResponse(
       systemPrompt += `\n\n${typeInstructions[forcedType]}`;
     }
 
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...contextMessages,
-        { role: "user", content: prompt },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
+    // Get recent context (last 5 messages for efficiency)
+    const recentContext = chatService.getRecentContext(context, 5);
 
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error("No content in response");
+    // Send message using ChatService with retry logic
+    const responseText = await chatService.sendMessage(
+      systemPrompt,
+      recentContext,
+      prompt,
+      {
+        temperature: 0.7,
+        maxTokens: 2000,
+        jsonMode: true,
+      }
+    );
 
-    const parsedResponse = JSON.parse(content);
+    // Parse JSON response
+    const parsedResponse = JSON.parse(responseText);
 
+    // Validate response structure
     if (!parsedResponse.type || !parsedResponse.content) {
       throw new Error("Invalid response structure");
     }
 
+    // Validate type
     if (!["text", "tool", "embed"].includes(parsedResponse.type)) {
       throw new Error("Invalid response type");
     }
 
+    // Ensure suggestions is an array
     if (
       parsedResponse.suggestions &&
       !Array.isArray(parsedResponse.suggestions)
@@ -65,9 +67,23 @@ export async function getAIResponse(
     } as AIResponse;
   } catch (error) {
     console.error("AI Response Error:", error);
+
+    // Provide helpful error message based on error type
+    let errorMessage = "Error: Could not parse AI response.";
+
+    if (error instanceof Error) {
+      if (error.message.includes('rate limit')) {
+        errorMessage = "Error: Rate limit exceeded. Please try again in a moment.";
+      } else if (error.message.includes('timeout')) {
+        errorMessage = "Error: Request timed out. Please try again.";
+      } else if (error.message.includes('network')) {
+        errorMessage = "Error: Network error. Please check your connection.";
+      }
+    }
+
     return {
       type: "text",
-      content: "Error: Could not parse AI response.",
+      content: errorMessage,
     };
   }
 }
