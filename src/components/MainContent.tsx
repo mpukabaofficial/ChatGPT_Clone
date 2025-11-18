@@ -1,9 +1,8 @@
 import { ArrowUp, Maximize2, Pin, PinOff, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { getAIResponse, type AIResponse, type CommandResponse } from "../api";
 import { useChatStore, type Message } from "../chatStore";
+import MessageText from "./MessageText";
 import TopNav from "./MainContent/TopNav";
 
 interface ToolPlan {
@@ -516,7 +515,7 @@ const MainContent = ({
       <TopNav />
 
       {/* Chat Container */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-thin scroll-smooth">
         <div className="max-w-3xl mx-auto px-4 py-6">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-96">
@@ -648,83 +647,7 @@ const MainContent = ({
                           : "justify-start"
                       }`}
                     >
-                      {message.role === "assistant" ? (
-                        <section className="mt-6 p-4 bg-slate-900 rounded-xl max-w-2xl">
-                          <div className="text-white prose prose-invert max-w-none">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                // Custom link styling
-                                a: (props) => (
-                                  <a
-                                    {...props}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-slate-400 hover:underline"
-                                  />
-                                ),
-                                // Custom code block styling
-                                pre: (props) => (
-                                  <pre
-                                    {...props}
-                                    className="bg-slate-950 p-4 rounded-lg overflow-x-auto"
-                                  />
-                                ),
-                                // Inline and block code styling
-                                code: (props) => {
-                                  const isInline =
-                                    !props.className?.includes("language-");
-                                  return isInline ? (
-                                    <code
-                                      {...props}
-                                      className="bg-slate-700 px-1 py-0.5 rounded text-sm"
-                                    />
-                                  ) : (
-                                    <code
-                                      {...props}
-                                      className="text-gray-100"
-                                    />
-                                  );
-                                },
-                                // Table styling
-                                table: (props) => (
-                                  <table
-                                    {...props}
-                                    className="border-collapse border border-slate-600 w-full"
-                                  />
-                                ),
-                                th: (props) => (
-                                  <th
-                                    {...props}
-                                    className="border border-slate-600 px-4 py-2 bg-slate-700"
-                                  />
-                                ),
-                                td: (props) => (
-                                  <td
-                                    {...props}
-                                    className="border border-slate-600 px-4 py-2"
-                                  />
-                                ),
-                                // Blockquote styling
-                                blockquote: (props) => (
-                                  <blockquote
-                                    {...props}
-                                    className="border-l-4 border-slate-400 pl-4 italic text-gray-300"
-                                  />
-                                ),
-                              }}
-                            >
-                              {message.content}
-                            </ReactMarkdown>
-                          </div>
-                        </section>
-                      ) : (
-                        <div className="max-w-2xl p-4 rounded-lg bg-slate-600 text-white">
-                          <div className="whitespace-pre-wrap">
-                            {message.content}
-                          </div>
-                        </div>
-                      )}
+                      <MessageText content={message.content} role={message.role} />
                     </div>
                   )}
                   {renderMorphButtons(message)}
